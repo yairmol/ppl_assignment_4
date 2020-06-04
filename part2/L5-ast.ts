@@ -3,7 +3,7 @@
 // L5 extends L4 with:
 // optional type annotations
 
-import { join, map, zipWith } from "ramda";
+import { join, map, zipWith, concat } from "ramda";
 import { Sexp, Token } from 's-expression';
 import { isCompoundSExp, isEmptySExp, isSymbolSExp, makeCompoundSExp, makeEmptySExp, makeSymbolSExp, SExpValue, valueToString } from './L5-value';
 import { isTVar, makeFreshTVar, parseTExp, unparseTExp, TExp } from './TExp';
@@ -154,7 +154,7 @@ export const makeSetExp = (v: VarRef, val: CExp): SetExp =>
 export const isSetExp = (x: any): x is SetExp => x.tag === "SetExp";
 
 //new types: values - primitive operator, let-values - CExp
-export interface TupleBinding {tag: "TupleBinding"; varsTuple: VarDecl[]; valuesTuple: AppExp}
+export interface TupleBinding {tag: "TupleBinding"; varsTuple: VarDecl[]; valuesTuple: AppExp} //valuesTuple: CExp[]
 export const makeTupleBinding = (varsTuple: VarDecl[], valuesTuple: AppExp): TupleBinding =>
     ({tag: "TupleBinding", varsTuple: varsTuple, valuesTuple: valuesTuple})
 export const isTupleBinding = (x: any): x is TupleBinding => x.tag === "TupleBinding";
@@ -375,6 +375,7 @@ export const unparse = (e: Parsed): Result<string> =>
     isProcExp(e) ? unparseProcExp(e) :
     isLitExp(e) ? makeOk(unparseLitExp(e)) :
     isSetExp(e) ? unparseSetExp(e) :
+    isLetValuesExp(e) ? unparseLetValuesExp(e):
     // DefineExp | Program
     isDefineExp(e) ? safe2((vd: string, val: string) => makeOk(`(define ${vd} ${val})`))
                         (unparseVarDecl(e.var), unparse(e.val)) :
@@ -417,3 +418,17 @@ const unparseLetrecExp = (le: LetrecExp): Result<string> =>
 
 const unparseSetExp = (se: SetExp): Result<string> =>
     bind(unparse(se.val), (val: string) => makeOk(`(set! ${se.var.var} ${val})`));
+
+const unparseLetValuesExp = (lv : LetValuesExp): Result<string> =>
+    safe2((bdgs: string, body: string) => makeOk(`(let-values (${bdgs}) ${body})`))
+        (unparseTupleBindings(lv.bindings), unparseLExps(lv.body));
+
+const unparseTupleBindings = (bindings: TupleBinding[]): Result<string> =>
+    bind(mapResult(bdg => safe2((vd: string, val: string) => makeOk(`[(${vd}) (${val})]`))(unparseVarsTuple(bdg.varsTuple), unparseValsTuple(bdg.valuesTuple)), bindings),
+        (bdgs: string[]) => makeOk(join(" ", bdgs)));
+
+const unparseVarsTuple = (vars: VarDecl[]): Result<string> => 
+    makeOk(vars.reduce((acc: string, curr: VarDecl) => acc.concat(" " + unparseVarDecl(curr)), ""))
+
+const unparseValsTuple = (val: AppExp): Result<string> =>
+    makeOk(val.rands.reduce((acc: string, curr: CExp) => acc.concat(" " + unparse(curr)), "values"))

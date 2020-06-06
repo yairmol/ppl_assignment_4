@@ -199,6 +199,10 @@ export const unparseTExp = (te: TExp): Result<string> => {
         isEmpty(paramTes) ? makeOk(["Empty"]) :
         safe2((paramTE: string, paramTEs: string[]) => makeOk([paramTE].concat(chain(te => ['*', te], paramTEs))))
             (unparseTExp(first(paramTes)), mapResult(unparseTExp, rest(paramTes)));
+    const unparseTuple2 = (t: TupleTExp): Result<string[]> =>
+        isEmptyTupleTExp(t) ? makeOk(["Empty"]) :
+        safe2((paramTE: string, paramTEs: string[]) => makeOk([paramTE].concat(chain(te => ['*', te], paramTEs))))
+            (unparseTExp(first(t.TEs)), mapResult(unparseTExp, rest(t.TEs)));
     const up = (x?: TExp): Result<string | string[]> =>
         isNumTExp(x) ? makeOk('number') :
         isBoolTExp(x) ? makeOk('boolean') :
@@ -208,6 +212,7 @@ export const unparseTExp = (te: TExp): Result<string> => {
         isTVar(x) ? up(tvarContents(x)) :
         isProcTExp(x) ? safe2((paramTEs: string[], returnTE: string) => makeOk([...paramTEs, '->', returnTE]))
                             (unparseTuple(x.paramTEs), unparseTExp(x.returnTE)) :
+        isTupleTExp(x) ? unparseTuple2(x) :
         makeFailure("Never");
     const unparsed = up(te);
     return bind(unparsed,

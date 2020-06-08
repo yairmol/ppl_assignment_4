@@ -314,7 +314,7 @@ const parseGoodSetExp = (variable: Sexp, val: Sexp): Result<SetExp> =>
     ! isIdentifier(variable) ? makeFailure("First arg of set! must be an identifier") :
     bind(parseL5CExp(val), (val: CExp) => makeOk(makeSetExp(makeVarRef(variable), val)));
 
-const parseLetValuesExp = (bindings: Sexp, body: Sexp[]): Result<LetValuesExp> =>
+const parseLetValuesExp = (bindings: Sexp, body: Sexp[]): Result<LetValuesExp> => 
     isEmpty(body) ? makeFailure('Body of "let" cannot be empty') :
     !isGoodBindings(bindings) ? makeFailure(`Invalid bindings: ${JSON.stringify(bindings)}`) :
     safe2((bdgs: TupleBinding[], body: CExp[]) => makeOk(makeLetValuesExp(bdgs, body)))
@@ -322,9 +322,9 @@ const parseLetValuesExp = (bindings: Sexp, body: Sexp[]): Result<LetValuesExp> =
 
 // bindings should be an array such that each element in the array is a two elements array. 🍕
 // the first element is an array of var declarations and the second is an array representing an AppExp
-const parseTupleBinding = (binding: [Sexp, Sexp]): Result<TupleBinding> =>
+const parseTupleBinding = (binding: [Sexp, Sexp]): Result<TupleBinding> => 
     isArray(binding[0]) && isArray(binding[1]) ? safe2((vars: VarDecl[], vals: AppExp) => makeOk(makeTupleBinding(vars, vals)))
-    (mapResult(parseVarDecl, map(b => b[0], binding[0])), parseAppExp(first(binding[1]), rest(binding[1]))) :
+    (mapResult(parseVarDecl, binding[0]), parseAppExp(first(binding[1]), rest(binding[1]))) :
     makeFailure("not a valid let-values");
 
 // sexps has the shape (quote <sexp>)

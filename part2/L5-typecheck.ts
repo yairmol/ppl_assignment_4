@@ -4,7 +4,7 @@ import { equals, map, zipWith, reduce } from 'ramda';
 import { isAppExp, isBoolExp, isDefineExp, isIfExp, isLetrecExp, isLetExp, isNumExp,
          isPrimOp, isProcExp, isProgram, isStrExp, isVarRef, parseL5Exp, unparse,
          AppExp, BoolExp, DefineExp, Exp, IfExp, LetrecExp, LetExp, NumExp,
-         Parsed, PrimOp, ProcExp, Program, StrExp, isLetValuesExp, LetValuesExp, VarDecl, TupleBinding } from "./L5-ast";
+         Parsed, PrimOp, ProcExp, Program, StrExp, isLetValuesExp, LetValuesExp, VarDecl, TupleBinding, VarRef } from "./L5-ast";
 import { applyTEnv, makeEmptyTEnv, makeExtendTEnv, TEnv } from "./TEnv";
 import { isProcTExp, makeBoolTExp, makeNumTExp, makeProcTExp, makeStrTExp, makeVoidTExp,
          parseTE, unparseTExp,
@@ -160,9 +160,9 @@ export const typeofLet = (exp: LetExp, tenv: TEnv): Result<TExp> => {
 // need to check that each AppExp returns a tuple with the same length and same types of the varDecl Tuple
 export const typeofLetValues = (exp: LetValuesExp, tenv: TEnv): Result<TExp> => {
     const vars: string[] = reduce((acc: string[], curr: TupleBinding) => acc.concat(map((v: VarDecl) => v.var, curr.varsTuple)), [], exp.bindings);
-    const vals: AppExp[] = map((b) => b.valuesTuple, exp.bindings);
+    const vals: (AppExp | VarRef)[] = map((b) => b.valuesTuple, exp.bindings);
     const varTEss: TExp[][] = map((b: TupleBinding) => map((v: VarDecl) => v.texp, b.varsTuple),exp.bindings)
-    const constraints = zipWithResult((varTEs: TExp[], val: AppExp) => bind(typeofExp(val, tenv),
+    const constraints = zipWithResult((varTEs: TExp[], val: AppExp | VarRef) => bind(typeofExp(val, tenv),
             (tov: TExp) => isNonEmptyTupleTExp(tov) && tov.TEs.length === varTEs.length ? zipWithResult((varTE, valTE) => checkEqualType(varTE, valTE, exp),
                 tov.TEs, varTEs) : makeFailure("AppExp must be of type tuple and have the same length as the vars tuple")), 
         varTEss, vals);

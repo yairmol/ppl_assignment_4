@@ -154,8 +154,8 @@ export const makeSetExp = (v: VarRef, val: CExp): SetExp =>
 export const isSetExp = (x: any): x is SetExp => x.tag === "SetExp";
 
 //new types: values - primitive operator, let-values - CExp
-export interface TupleBinding {tag: "TupleBinding"; varsTuple: VarDecl[]; valuesTuple: AppExp} //valuesTuple: CExp[]
-export const makeTupleBinding = (varsTuple: VarDecl[], valuesTuple: AppExp): TupleBinding =>
+export interface TupleBinding {tag: "TupleBinding"; varsTuple: VarDecl[]; valuesTuple: AppExp | VarRef} //valuesTuple: CExp[]
+export const makeTupleBinding = (varsTuple: VarDecl[], valuesTuple: AppExp | VarRef): TupleBinding =>
     ({tag: "TupleBinding", varsTuple: varsTuple, valuesTuple: valuesTuple})
 export const isTupleBinding = (x: any): x is TupleBinding => x.tag === "TupleBinding";
 
@@ -323,8 +323,8 @@ const parseLetValuesExp = (bindings: Sexp, body: Sexp[]): Result<LetValuesExp> =
 // bindings should be an array such that each element in the array is a two elements array. 🍕
 // the first element is an array of var declarations and the second is an array representing an AppExp
 const parseTupleBinding = (binding: [Sexp, Sexp]): Result<TupleBinding> => 
-    isArray(binding[0]) && isArray(binding[1]) ? safe2((vars: VarDecl[], vals: AppExp) => makeOk(makeTupleBinding(vars, vals)))
-    (mapResult(parseVarDecl, binding[0]), parseAppExp(first(binding[1]), rest(binding[1]))) :
+    isArray(binding[0]) ? safe2((vars: VarDecl[], vals: CExp): Result<TupleBinding> => isVarRef(vals) || isAppExp(vals) ? makeOk(makeTupleBinding(vars, vals)) : makeFailure("excpected appExp or varRed in tuple binding"))
+    (mapResult(parseVarDecl, binding[0]), parseL5CExp(binding[1])) :
     makeFailure("not a valid let-values");
 
 // sexps has the shape (quote <sexp>)
@@ -430,5 +430,6 @@ const unparseTupleBindings = (bindings: TupleBinding[]): Result<string> =>
 const unparseVarsTuple = (vars: VarDecl[]): Result<string> => 
     makeOk(vars.reduce((acc: string, curr: VarDecl) => acc.concat(" " + unparseVarDecl(curr)), ""))
 
-const unparseValsTuple = (val: AppExp): Result<string> =>
+const unparseValsTuple = (val: AppExp | VarRef): Result<string> =>
+    isVarRef(val) ? makeOk(val.var) :
     makeOk(val.rands.reduce((acc: string, curr: CExp) => acc.concat(" " + unparse(curr)), "values"))

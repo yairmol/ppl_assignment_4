@@ -1,7 +1,7 @@
 // L5-eval-box
 
 import { map, repeat, zipWith, reduce } from "ramda";
-import { CExp, Exp, IfExp, LetrecExp, LetExp, ProcExp, Program, SetExp, isCExp, isLetValuesExp, LetValuesExp, TupleBinding, AppExp } from './L5-ast';
+import { CExp, Exp, IfExp, LetrecExp, LetExp, ProcExp, Program, SetExp, isCExp, isLetValuesExp, LetValuesExp, TupleBinding, AppExp, VarRef } from './L5-ast';
 import { Binding, VarDecl } from "./L5-ast";
 import { isBoolExp, isLitExp, isNumExp, isPrimOp, isStrExp, isVarRef } from "./L5-ast";
 import { parseL5Exp } from "./L5-ast";
@@ -9,7 +9,7 @@ import { isAppExp, isDefineExp, isIfExp, isLetrecExp, isLetExp,
          isProcExp, isSetExp } from "./L5-ast";
 import { applyEnv, applyEnvBdg, globalEnvAddBinding, makeExtEnv, setFBinding,
          theGlobalEnv, Env, FBinding } from "./L5-env";
-import { isClosure, makeClosure, Closure, Value, isTuple } from "./L5-value";
+import { isClosure, makeClosure, Closure, Value, isTuple, Tuple, SExpValue } from "./L5-value";
 import { isEmpty, first, rest, allT } from '../shared/list';
 import { Result, makeOk, makeFailure, mapResult, safe2, bind } from "../shared/result";
 import { parse as p } from "../shared/parser";
@@ -95,10 +95,11 @@ const evalLet = (exp: LetExp, env: Env): Result<Value> => {
 }
 
 const evalLetValues = (exp: LetValuesExp, env: Env): Result<Value> => {
-    const vals = mapResult((v : AppExp) => applicativeEval(v, env), map((b : TupleBinding) => b.valuesTuple, exp.bindings));
+    const vals = mapResult((v : AppExp | VarRef) => applicativeEval(v, env), map((b : TupleBinding) => b.valuesTuple, exp.bindings));
     const vars: string[] = reduce((acc: string[], curr: TupleBinding) =>
             acc.concat(map((v: VarDecl) => v.var, curr.varsTuple)), [], exp.bindings);
-    return bind(vals, (vals: Value[]) => evalSequence(exp.body, makeExtEnv(vars, vals, env)));
+    return bind(vals, (vals: Value[]) => allT(isTuple, vals) ? evalSequence(exp.body, makeExtEnv(vars, 
+        reduce((acc: SExpValue[], curr: Tuple): SExpValue[] => acc.concat(curr.vals), [], vals), env)) : makeFailure("not a tuple"));
 }
 
 

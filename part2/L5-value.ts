@@ -35,7 +35,7 @@ export interface Tuple {
 }
 export const makeTuple = (vals: Value[]): Tuple =>
     ({tag: "Tuple", vals: vals});
-export const isTuple = (x: any): x is Closure => x.tag === "Tuple";
+export const isTuple = (x: any): x is Tuple => x.tag === "Tuple";
 
 // ========================================================
 // SExp

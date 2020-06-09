@@ -27,27 +27,25 @@ function h (x: number) {
 }
 
 const slower = (promises: [Promise<any>, Promise<any>]): Promise<any> => {
-    //return new Promise((resolve, reject) => {
-        // if the first promise finishes first
-    //     promises[0]
-    //         .then((value) => promises[1])
-    //         .then((value) => resolve([1, value]))
-    //         .catch((message) => reject(message))
-    //     // if the second promise finishes first
-    //     promises[1]
-    //         .then((value) => promises[0])
-    //         .then((value) => resolve([0, value]))
-    //         .catch((message) => reject(message))
-    // })
-    // const newPromises: Promise<any[]>[] = [promises[0].then(value => [0, value]), promises[1].then(value => [1, value])]
-    // const checkPromises: Promise<any> = Promise.race(newPromises)
-    // return checkPromises.then((result: any[]) => Promise.all(promises).then((value) => resolve(result[0].concat(" " + result[1])))
-    // .catch(message => reject(message)))
+    return new Promise((resolve, reject) => {
+        //if the first promise finishes first
+        promises[0]
+            .catch((message) => reject(message))
+            .then((value) => promises[1])
+            .then((value) => resolve([1, value]))
+            .catch((message) => reject(message))
+        // if the second promise finishes first
+        promises[1]
+            .catch((message) => reject(message))
+            .then((value) => promises[0])
+            .then((value) => resolve([0, value]))
+            .catch((message) => reject(message))
+    })
 }
 
 const promise1 = new Promise((resolve, reject) => setTimeout(resolve, 1000, 'one'));
-const promise2 = new Promise((resolve, reject) => setTimeout(resolve, 999, 'two'));
+const promise2 = new Promise((resolve, reject) => setTimeout(resolve, 200, 'two'));
 
 slower([promise1, promise2])
     .then((value) => console.log(value))
-    .catch((message) => console.log(message));
+    .catch((message) => console.log("reject:" + message));

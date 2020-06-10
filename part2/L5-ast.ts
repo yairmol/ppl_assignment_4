@@ -424,12 +424,16 @@ const unparseLetValuesExp = (lv : LetValuesExp): Result<string> =>
         (unparseTupleBindings(lv.bindings), unparseLExps(lv.body));
 
 const unparseTupleBindings = (bindings: TupleBinding[]): Result<string> =>
-    bind(mapResult(bdg => safe2((vd: string, val: string) => makeOk(`[(${vd}) (${val})]`))(unparseVarsTuple(bdg.varsTuple), unparseValsTuple(bdg.valuesTuple)), bindings),
+    bind(mapResult(bdg => safe2((vd: string, val: string) => makeOk(`((${vd}) (${val}))`))(unparseVarsTuple(bdg.varsTuple), unparseValsTuple(bdg.valuesTuple)), bindings),
         (bdgs: string[]) => makeOk(join(" ", bdgs)));
 
 const unparseVarsTuple = (vars: VarDecl[]): Result<string> => 
-    makeOk(vars.reduce((acc: string, curr: VarDecl) => acc.concat(" " + unparseVarDecl(curr)), ""))
+   bind(mapResult(unparseVarDecl, vars), x => makeOk(rest(x).reduce((acc: string, curr: string) => acc.concat(" " + curr), first(x))))
 
 const unparseValsTuple = (val: AppExp | VarRef): Result<string> =>
     isVarRef(val) ? makeOk(val.var) :
-    makeOk(val.rands.reduce((acc: string, curr: CExp) => acc.concat(" " + unparse(curr)), "values"))
+    //makeOk(val.rands.reduce((acc: string, curr: CExp) => acc.concat(" " + unparse(curr)), "values"))
+    bind(mapResult(unparse, val.rands), x => makeOk(rest(x).reduce((acc: string, curr: string) =>
+        acc.concat(" " + curr), (isVarRef(val.rator) ? val.rator.var :
+        isPrimOp(val.rator) ? val.rator.op :
+            "never").concat(" " + first(x)))))
